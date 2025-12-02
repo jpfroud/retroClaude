@@ -42,8 +42,24 @@ Application de rétrospectives d'équipe collaborative en temps réel.
 ```
 retroClaude/
 ├── frontend/          # Application React
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── common/      # Composants réutilisables (Timer, PhaseHeader, etc.)
+│   │   │   └── phases/      # Composants pour chaque phase
+│   │   ├── pages/           # Pages principales (Home, CreateRetro, JoinRetro, RetroRoom)
+│   │   ├── services/        # Services API et WebSocket
+│   │   └── store/           # State management (Zustand)
 ├── backend/           # API Node.js + WebSocket
+│   ├── src/
+│   │   ├── controllers/     # Contrôleurs REST
+│   │   ├── routes/          # Routes API
+│   │   ├── services/        # Services (WebSocket, etc.)
+│   │   └── index.ts         # Point d'entrée
+│   └── prisma/
+│       └── schema.prisma    # Schéma de base de données
 ├── shared/            # Types TypeScript partagés
+├── INSTALLATION.md    # Guide d'installation détaillé
+├── GUIDE_UTILISATEUR.md  # Guide d'utilisation complet
 └── README.md
 ```
 
@@ -87,16 +103,46 @@ PORT=3001
 FRONTEND_URL="http://localhost:5173"
 ```
 
-## 🎯 Roadmap
+## 🎯 Statut du Projet
+
+✅ **Version 1.0 - Complète et Fonctionnelle**
 
 - [x] Architecture et structure du projet
-- [ ] Modèles de données
-- [ ] API Backend
-- [ ] Interface utilisateur de base
-- [ ] Phases de rétrospective
-- [ ] Collaboration temps réel
-- [ ] Système d'invitation
-- [ ] Tests
+- [x] Modèles de données (Prisma + PostgreSQL)
+- [x] API Backend REST
+- [x] WebSocket pour temps réel
+- [x] Interface utilisateur complète
+- [x] Toutes les 10 phases de rétrospective implémentées
+- [x] Collaboration temps réel
+- [x] Système d'invitation (code + QR code)
+- [x] Timer configurable par phase
+- [x] Gestion des rôles (facilitateur/participant)
+- [x] Mode anonyme
+- [x] Templates de rétrospective (Classique, 4L, Start-Stop-Continue, Personnalisé)
+
+### 🚧 Améliorations Futures
+
+- [ ] Tests unitaires et d'intégration
+- [ ] Authentification utilisateur persistante
+- [ ] Historique des rétrospectives
+- [ ] Export des résultats (PDF, Excel)
+- [ ] Notifications email
+- [ ] Thème sombre
+- [ ] Multi-langue
+
+## 📚 Documentation
+
+- **[INSTALLATION.md](INSTALLATION.md)** - Guide d'installation détaillé avec résolution de problèmes
+- **[GUIDE_UTILISATEUR.md](GUIDE_UTILISATEUR.md)** - Guide complet d'utilisation avec toutes les phases expliquées
+
+## 🎮 Utilisation
+
+1. **Installez** l'application (voir INSTALLATION.md)
+2. **Démarrez** le backend et le frontend
+3. **Créez** une rétrospective depuis la page d'accueil
+4. **Invitez** vos collègues via le code ou QR code
+5. **Suivez** les phases guidées de la rétrospective
+6. **Profitez** de la collaboration en temps réel !
 
 ## 📄 Licence
 
