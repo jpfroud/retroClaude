@@ -1,0 +1,306 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Utilisateur
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  color     String   @default("#3B82F6") // Couleur pour identifier visuellement
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdRetrospectives Retrospective[]      @relation("CreatedBy")
+  participants          RetroParticipant[]
+  tickets               Ticket[]
+  comments              Comment[]
+  votes                 Vote[]
+  actions               Action[]
+  icebreakerResponses   IcebreakerResponse[]
+  welcomeVotes          WelcomeVote[]
+  rotiVotes             ROTIVote[]
+}
+
+// Rétrospective
+model Retrospective {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  template    String   // "classic", "4l", "start-stop-continue", "custom"
+  isAnonymous Boolean  @default(false)
+  inviteCode  String   @unique // Code pour rejoindre
+  qrCode      String?  // QR code en base64
+  currentPhase String  @default("setup") // setup, icebreaker, welcome, review-actions, brainstorm, group, vote, discuss, review, closing
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Configuration
+  config Json @default("{}")
+  // {
+  //   "showAuthor": true,
+  //   "colorMode": "by-person", // "by-person", "by-topic", "manual"
+  //   "revealImmediately": true,
+  //   "facilitatorOnly": false,
+  //   "icebreakerQuestion": "What's your favorite ice cream?",
+  //   "welcomeQuestion": "How did the iteration go?",
+  //   "voteConfig": { "maxVotes": 3, "limitPerGroup": false, "mustUseAll": false, "voteOnGroups": true, "showResults": false },
+  //   "discussConfig": { "discussMode": "topN", "topN": 5, "anyoneCanPropose": true },
+  //   "sortMode": "by-author"
+  // }
+
+  // Relations
+  createdBy     User                 @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  participants  RetroParticipant[]
+  columns       Column[]
+  tickets       Ticket[]
+  ticketGroups  TicketGroup[]
+  votes         Vote[]
+  actions       Action[]
+  actionItems   ActionItem[]         // Actions des rétros précédentes
+  icebreakers   IcebreakerResponse[]
+  welcomeVotes  WelcomeVote[]
+  rotiVotes     ROTIVote[]
+  timer         Timer?
+
+  @@index([inviteCode])
+}
+
+// Participant dans une rétro
+model RetroParticipant {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  userId          String
+  role            String   @default("participant") // "facilitator", "participant"
+  isReady         Boolean  @default(false) // Pour le bouton "I'm finished"
+  joinedAt        DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([retrospectiveId, userId])
+  @@index([retrospectiveId])
+}
+
+// Colonne de rétrospective
+model Column {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  title           String
+  color           String   @default("#3B82F6")
+  position        Int      // Ordre d'affichage
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  tickets       Ticket[]
+
+  @@index([retrospectiveId])
+}
+
+// Ticket/Carte
+model Ticket {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  columnId        String
+  authorId        String
+  content         String
+  color           String?  // Pour coloration manuelle
+  isRevealed      Boolean  @default(false)
+  position        Int      // Position dans la colonne
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  column        Column        @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  group         TicketGroup?  @relation(fields: [groupId], references: [id])
+  groupId       String?
+  comments      Comment[]
+  reactions     Reaction[]
+  votes         Vote[]
+  actions       Action[]
+
+  @@index([retrospectiveId])
+  @@index([columnId])
+  @@index([groupId])
+}
+
+// Groupe de tickets
+model TicketGroup {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  title           String?  // Titre optionnel du groupe
+  position        Int      // Position d'affichage
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  tickets       Ticket[]
+  votes         Vote[]
+
+  @@index([retrospectiveId])
+}
+
+// Commentaire sur un ticket
+model Comment {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// Réaction emoji sur un ticket
+model Reaction {
+  id        String   @id @default(uuid())
+  ticketId  String
+  emoji     String   // "👍", "👎", "❤️", etc.
+  count     Int      @default(1)
+  createdAt DateTime @default(now())
+
+  // Relations
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, emoji])
+  @@index([ticketId])
+}
+
+// Vote
+model Vote {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  userId          String
+  ticketId        String?  // Vote sur un ticket
+  groupId         String?  // Ou vote sur un groupe
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket        Ticket?       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  group         TicketGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([retrospectiveId])
+  @@index([userId])
+}
+
+// Action proposée pendant la discussion
+model Action {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  ticketId        String?  // Action liée à un ticket/groupe
+  title           String
+  description     String?
+  assignedToId    String?
+  status          String   @default("proposed") // "proposed", "approved", "rejected"
+  isCompleted     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  ticket        Ticket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  assignedTo    User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([retrospectiveId])
+}
+
+// Actions des rétros précédentes (pour la phase Review Actions)
+model ActionItem {
+  id              String   @id @default(uuid())
+  retrospectiveId String   // La rétro où on review cette action
+  title           String
+  description     String?
+  assignedTo      String?  // Nom de la personne
+  isDone          Boolean  @default(false)
+  fromRetroId     String?  // ID de la rétro d'origine
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+
+  @@index([retrospectiveId])
+}
+
+// Réponse à l'icebreaker
+model IcebreakerResponse {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  userId          String
+  response        String
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([retrospectiveId, userId])
+  @@index([retrospectiveId])
+}
+
+// Vote Welcome (comment s'est passée l'itération)
+model WelcomeVote {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  userId          String
+  rating          Int      // 1-5 par exemple
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([retrospectiveId, userId])
+  @@index([retrospectiveId])
+}
+
+// Vote ROTI (Return On Time Invested)
+model ROTIVote {
+  id              String   @id @default(uuid())
+  retrospectiveId String
+  userId          String
+  rating          Int      // 1-5
+  createdAt       DateTime @default(now())
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([retrospectiveId, userId])
+  @@index([retrospectiveId])
+}
+
+// Timer pour les phases
+model Timer {
+  id              String    @id @default(uuid())
+  retrospectiveId String    @unique
+  duration        Int       // Durée en secondes
+  remainingTime   Int       // Temps restant en secondes
+  isRunning       Boolean   @default(false)
+  startedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+}

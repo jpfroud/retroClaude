@@ -1,0 +1,40 @@
+# Ignore dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Ignore build outputs
+dist
+build
+.next
+
+# Ignore environment files
+.env
+.env.local
+.env*.local
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Ignore logs
+logs
+*.log
+
+# Ignore test coverage
+coverage
+
+# Ignore Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Ignore temporary files
+tmp
+temp
+*.tmp
